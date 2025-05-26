@@ -165,6 +165,39 @@ const PDFImageExtractor = () => {
     alert("Base64 kodu kopyalandı!");
   };
 
+  const downloadAllAsZip = async () => {
+    // JSZip kitabxanası ilə zip yaratmaq üçün
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      extractedImages.forEach((image) => {
+        // Base64-dən binary data əldə edirik
+        const binaryData = atob(image.base64.split(",")[1]);
+        const bytes = new Uint8Array(binaryData.length);
+        for (let i = 0; i < binaryData.length; i++) {
+          bytes[i] = binaryData.charCodeAt(i);
+        }
+
+        zip.file(`${image.name}.png`, bytes);
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(content);
+      link.download = `pdf-images-${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error("ZIP yaratma xətası:", error);
+      alert(
+        "ZIP faylı yaratmaq üçün jszip paketini quraşdırın: npm install jszip"
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-4xl mx-auto">
@@ -245,11 +278,19 @@ const PDFImageExtractor = () => {
           {/* Çıxarılan Şəkillər */}
           {extractedImages.length > 0 && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <Image className="w-6 h-6 mr-3" />
-                Çıxarılan Şəkillər ({extractedImages.length})
-              </h2>
-
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                  <Image className="w-6 h-6 mr-3" />
+                  Çıxarılan Şəkillər ({extractedImages.length})
+                </h2>
+                <button
+                  onClick={downloadAllAsZip}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Hamısını ZIP-də Yüklə
+                </button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {extractedImages.map((image) => (
                   <div
