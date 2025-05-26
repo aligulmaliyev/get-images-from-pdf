@@ -44,7 +44,7 @@ const PDFImageExtractor = () => {
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
       const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-      const extractedImages = [];
+      const extractedImages: ExtractedImage[] = [];
       let imageCounter = 0;
 
       // İlk olaraq PDF-də embedded şəkilləri axtarırıq
@@ -67,6 +67,11 @@ const PDFImageExtractor = () => {
               canvas.width = viewport.width;
               canvas.height = viewport.height;
 
+              if (!context) {
+                console.error("Canvas konteksti əldə edilə bilmədi");
+                continue;
+              }
+              // Səhifəni render edirik
               await page.render({
                 canvasContext: context,
                 viewport: viewport,
@@ -102,6 +107,10 @@ const PDFImageExtractor = () => {
           canvas.width = viewport.width;
           canvas.height = viewport.height;
 
+          if (!context) {
+            console.error("Canvas konteksti əldə edilə bilmədi");
+            continue;
+          }
           await page.render({
             canvasContext: context,
             viewport: viewport,
@@ -127,14 +136,15 @@ const PDFImageExtractor = () => {
       if (extractedImages.length === 0) {
         setError("PDF faylında heç bir məzmun tapılmadı");
       }
-    } catch (err: any) {
-      console.error("PDF analiz xətası:", err);
-      if (err.message.includes("Invalid PDF")) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("PDF analiz xətası:", errorMessage);
+      if (errorMessage.includes("Invalid PDF")) {
         setError("Seçilən fayl düzgün PDF formatında deyil");
-      } else if (err.message.includes("Password")) {
+      } else if (errorMessage.includes("Password")) {
         setError("Bu PDF şifrələnib, şifrəni daxil edin");
       } else {
-        setError("PDF faylını analiz edərkən xəta: " + err.message);
+        setError("PDF faylını analiz edərkən xəta: " + errorMessage);
       }
     } finally {
       setIsLoading(false);
